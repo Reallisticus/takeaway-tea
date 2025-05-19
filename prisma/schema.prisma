@@ -1,20 +1,62 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
-    url      = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
-model Post {
-    id        Int      @id @default(autoincrement())
-    name      String
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+model Category {
+  id        String     @id @default(cuid())
+  name      String
+  nameEn    String     @map("name_en") // English name for admin convenience
+  sortOrder Int        @default(0) @map("sort_order")
+  menuItems MenuItem[]
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
 
-    @@index([name])
+  @@map("categories")
+}
+
+model MenuItem {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  price       Decimal         @db.Decimal(10, 2)
+  imageUrl    String?         @map("image_url")
+  isActive    Boolean         @default(true) @map("is_active")
+  categoryId  String          @map("category_id")
+  category    Category        @relation(fields: [categoryId], references: [id])
+  dailyMenus  DailyMenuItem[]
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
+
+  @@map("menu_items")
+}
+
+model DailyMenu {
+  id        String          @id @default(cuid())
+  date      DateTime        @db.Date
+  isActive  Boolean         @default(true) @map("is_active")
+  menuItems DailyMenuItem[]
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  @@unique([date])
+  @@map("daily_menus")
+}
+
+model DailyMenuItem {
+  id           String    @id @default(cuid())
+  dailyMenuId  String    @map("daily_menu_id")
+  menuItemId   String    @map("menu_item_id")
+  specialPrice Decimal?  @map("special_price") @db.Decimal(10, 2) // Optional discounted price
+  dailyMenu    DailyMenu @relation(fields: [dailyMenuId], references: [id], onDelete: Cascade)
+  menuItem     MenuItem  @relation(fields: [menuItemId], references: [id])
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@unique([dailyMenuId, menuItemId])
+  @@map("daily_menu_items")
 }
